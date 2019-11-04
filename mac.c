@@ -36,6 +36,14 @@ int encrypt(unsigned char input[], unsigned char output[], int length, int key)
 	rollingkey = key;
 	for (int i = 0; i < length; i += 4)
 	{
+		// accumulates 4 chars into an int
+		buf = 0;
+		for (int j = 0; j < 4; ++j)
+		{
+			buf = buf << 8;
+			buf = buf ^ (input[i + j] & 255);
+		}
+
 		buf = buf ^ rollingkey; //XOR with key, and put ciphertext in buf
 		MD5Init(&mdContext);  // compute MD5 of rollingkey
 		MD5Update(&mdContext, &rollingkey, 4);
@@ -43,6 +51,7 @@ int encrypt(unsigned char input[], unsigned char output[], int length, int key)
 		temp = (int*)& mdContext.digest[12];
 		result = *temp; // result is 32 bits of MD5 of buf
 
+		// parses int into 4 chars
 		rollingkey = rollingkey ^ result; // new key
 		//write(outfile, &buf, 4);  // write ciphertext
 		for (int j = 0; j < 4; ++j)
@@ -65,9 +74,9 @@ int readInput(char name[], unsigned char buffer[1024])
 		printf("Problems opening the rainbow-hashing file!");
 	}
 
-	return fread(buffer, 1024, 1, fptr);
+	fread(buffer, 1024, 1, fptr);
+	return 1024;
 
-	//return read(infile, &buffer, 12);
 }
 
 int main(int argc, char* argv[])
@@ -76,30 +85,42 @@ int main(int argc, char* argv[])
 
 	unsigned char input[1024];
 	unsigned char extendedOutput[1032];
-	unsigned char* output = extendedOutput + 8;
+	unsigned char* output = extendedOutput + 8; //[1024], but preceeded by 8 chars to hold the key
 	int bytesRead;
 	int infile, outfile;
 	int key = strtoul(argv[2], NULL, 16);
 
-	//itoa(key, extendedOutput, 10);
-	snprintf(extendedOutput, 9, "%x.8", key);
-
-	printf("Output: %s\n", extendedOutput);
+	// key 
+	snprintf(extendedOutput, 9, "%8.x", key);
 
 	bytesRead = readInput(argv[1], input);
-	
+	//printf("Length: %i\n", bytesRead);
+
+	/*
+	printf("Input: ");
+	for (int i = 0; i < 1024; ++i)
+	{
+		printf("%c", input[i]);
+	}
+	printf("\n");
+	*/
+
+	// (key | E(message)
 	encrypt(input, output, bytesRead, key);
 
 	/*
+	printf("Output: ");
 	for (int i = 0; i < 1024; ++i) 
 	{
-		printf("Output: %c\n", output[i]);
+		printf("%c", output[i]);
 	}
+	printf("\n");
 	*/
 
-	unsigned int hash = getHash(extendedOutput, bytesRead);
+	// MAC = H(key | E(message))
+	unsigned int hash = getHash(extendedOutput, bytesRead + 8);
 
-	printf("Hash: %i\n", hash);
-	printf("Key: %i\n", key);
-	printf("Extended Output: %s\n", extendedOutput);
+	printf("MAC: %x\n", hash);
+	//printf("Key: %8.x\n", key);
+	//printf("Extended Output: %s\n", extendedOutput);
 }
