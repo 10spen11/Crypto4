@@ -94,33 +94,15 @@ int main(int argc, char* argv[])
 	snprintf(extendedOutput, 9, "%8.x", key);
 
 	bytesRead = readInput(argv[1], input);
-	//printf("Length: %i\n", bytesRead);
 
-	/*
-	printf("Input: ");
-	for (int i = 0; i < 1024; ++i)
-	{
-		printf("%c", input[i]);
-	}
-	printf("\n");
-	*/
-
-	// (key | E(message)
+	//Let us encrypt the data in the file with the key obtained from the user
 	encrypt(input, output, bytesRead, key);
-
-	/*
-	printf("Output: ");
-	for (int i = 0; i < 1024; ++i) 
-	{
-		printf("%c", output[i]);
-	}
-	printf("\n");
-	*/
 
 	// MAC = H(key | E(message))
 	unsigned int hash = getHash(extendedOutput, bytesRead + 8);
 
 	printf("MAC: %x\n", hash);
-	//printf("Key: %8.x\n", key);
-	//printf("Extended Output: %s\n", extendedOutput);
+
+	printf("\nKey: %8.x\n", key);
+	printf("\nExtended Output: %s\n", extendedOutput);
 }
